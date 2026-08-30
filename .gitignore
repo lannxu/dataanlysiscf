@@ -1,8 +1,8 @@
 node_modules/
 .pnpm-store/
-.tmp-template/
 data/
 outputs/
+.env
 .agents/
 .codex/
 *.inspect.ndjson
