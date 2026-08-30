@@ -1,0 +1,36 @@
+{
+  // Cloudflare Workers 配置：静态资源 + Durable Objects
+  "name": "talent-review",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2025-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // 保持 .html 原样访问，不做扩展名重写（应用内链接均为 /xxx.html）
+    "html_handling": "none",
+    "not_found_handling": "none",
+    // 这些路径必须先进 Worker："/" 承载 WebSocket 升级，其余为需要登录态的受保护页面
+    "run_worker_first": [
+      "/",
+      "/home.html",
+      "/admin.html",
+      "/summary.html",
+      "/initial-results.html",
+      "/accounts.html",
+      "/change-password.html"
+    ]
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "STORE", "class_name": "TalentStore" }
+    ]
+  },
+  // 绑定自定义域名：自动创建 DNS 记录 + 免费证书
+  "routes": [
+    { "pattern": "anlysis2.19891103.xyz", "custom_domain": true }
+  ],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["TalentStore"] }
+  ]
+}

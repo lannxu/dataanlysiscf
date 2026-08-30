@@ -1,6 +1,20 @@
 # Talent Review Tool 4.0 - 人才盘点 / 九宫格评估系统
 
-## 本地运行
+## Cloudflare Workers 部署（新版，推荐）
+
+应用已迁移到 Cloudflare Workers + Durable Objects，前端静态资源由 Workers Assets 托管，全部状态保存在单例 Durable Object 的 storage 中，无需数据库。
+
+```bash
+pnpm install
+pnpm dev:cf       # 本地开发：http://localhost:8787
+pnpm deploy:cf    # 部署到 Cloudflare（需先 wrangler login）
+```
+
+- 结构：`src/worker.mjs` 为入口（路由/静态资源/登录门禁），`src/store.mjs` 为 Durable Object（全部 API + WebSocket 实时同步 + 持久化）。
+- 迁移旧数据：登录管理员后，把旧版 `data/session.json` 的内容 POST 到 `/api/admin/import-store`；`GET /api/admin/export-store` 可随时备份。
+- 自定义域名/二维码地址：在 Cloudflare Dashboard 设置 `PUBLIC_URL` 环境变量（对应旧版 `.env` 的 `PUBLIC_URL`）。
+
+## 本地运行（旧版 Node 模式）
 
 ```powershell
 $env:PORT="3100"

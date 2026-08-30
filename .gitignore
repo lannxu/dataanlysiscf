@@ -7,3 +7,9 @@ outputs/
 .codex/
 *.inspect.ndjson
 *.log
+.wrangler/
+# 历史开发遗留临时文件
+.tmp-*
+tmp/
+output/
+eng.traineddata
