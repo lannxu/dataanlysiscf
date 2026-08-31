@@ -107,6 +107,7 @@
             <p id="personVoteSummary">暂无投票</p>
           </div>
           <div class="host-recommend" id="personRecommend">系统建议：--</div>
+          <button class="secondary voter-toggle" id="togglePersonVoters" type="button" title="开启后在每个 Box 内显示初评人姓名">显示评委</button>
         </div>
         <div class="stage-ninebox">
           <div class="axis-y axis-y-bands"><span>POT3</span><span>POT2</span><span>POT1</span></div>
@@ -261,20 +262,8 @@ function recommendation(row){
 }
 
 function recommendationText(row){
-  if (!row?.recommendedGrid) return '待定';
-  return '建议 Box ' + row.recommendedGrid + recommendationPlText(row) + ' · ' + pct(Math.round((row.recommendedShare || 0) * 100), 100) + '共识';
-}
-
-function recommendationText(row){
   if (!row?.recommendedGrid) return '\u5f85\u5b9a';
   return '\u5efa\u8bae Box ' + row.recommendedGrid + ' \u00b7 ' + pct(Math.round((row.recommendedShare || 0) * 100), 100) + '\u5171\u8bc6';
-}
-
-function placementText(row){
-  const grid = placementGrid(row);
-  if (!grid) return '\u5f85\u5b9a';
-  const source = row.decision?.type === 'direct' ? '\u5df2\u8c03\u6574' : '\u7cfb\u7edf\u63a8\u8350';
-  return source + ' \u00b7 Box ' + grid;
 }
 
 function placementText(row){
@@ -587,6 +576,22 @@ function renderPersonPicker(){
   $('#nextPerson').disabled = selectedPersonIndex >= list.length - 1;
 }
 
+// 评委身份开关（与主持后台共享同一 localStorage 键）
+const votersKey = 'tr-show-voters';
+const showVoters = () => localStorage.getItem(votersKey) === '1';
+const votersOf = (row, box) => (row?.voteDetails || []).filter(v => !v.skip && v.grid === box).map(v => String(v.evaluator || '').trim()).filter(Boolean);
+const votersChipsHtml = (row, box) => {
+  const names = votersOf(row, box);
+  return showVoters() && names.length ? '<div class="stage-box-voters" title="' + esc(names.join('、')) + '">' + names.map(name => '<span class="voter-chip">' + esc(name) + '</span>').join('') + '</div>' : '';
+};
+function wireVoterToggle(){
+  const btn = $('#togglePersonVoters');
+  if (!btn) return;
+  const sync = () => { btn.classList.toggle('active', showVoters()); btn.textContent = showVoters() ? '隐藏评委' : '显示评委' };
+  btn.onclick = () => { localStorage.setItem(votersKey, showVoters() ? '0' : '1'); sync(); renderPerson(); };
+  sync();
+}
+
 function renderPerson(){
   renderPersonPicker();
   const row = currentPerson();
@@ -631,6 +636,7 @@ function renderPerson(){
       '<div class="stage-box-top"><b>Box ' + box + '</b><span class="' + (count > 0 ? 'vote-positive' : 'vote-zero') + '">' + count + ' 人 · ' + pct(count, row.count) + '</span></div>' +
       '<div class="stage-box-count">' + count + '</div>' +
       '<div class="stage-box-bar"><i style="width:' + (count ? Math.max(8, count / max * 100) : 0) + '%"></i></div>' +
+      votersChipsHtml(row, box) +
       '<div class="cell-note">' + (isDecision ? '讨论结果' : (isRecommend ? '系统建议' : '&nbsp;')) + '</div>' +
     '</div>';
   }).join('');
@@ -873,6 +879,7 @@ $('#togglePreVoting').onclick = async () => {
 
 setupPreShare();
 refreshPreVotingState().catch(() => {});
+wireVoterToggle();
 load();
 function connect(){
   const ws = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + wsRoomPath);

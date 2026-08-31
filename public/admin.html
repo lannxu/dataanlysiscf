@@ -43,6 +43,7 @@
           <p id="voteSummary">暂无投票</p>
         </div>
         <div class="host-recommend" id="hostRecommend">系统建议：--</div>
+        <button class="secondary voter-toggle" id="toggleVoters" type="button" title="开启后在每个 Box 内显示投票评委姓名">显示评委</button>
       </div>
       <div class="stage-ninebox"><div class="axis-y axis-y-bands"><span>POT3</span><span>POT2</span><span>POT1</span></div><div class="stage-nine-grid" id="hostNineGrid"></div><div class="axis-x axis-x-bands"><span>PL1-2</span><span>PL3</span><span>PL4-5</span></div></div>
       <div class="stage-decision" id="hostDecisionBar"></div>
@@ -246,6 +247,22 @@ function voteSummaryText(row){
   return row.count + ' votes, ' + parts.map(x => x.count + ' in Box ' + x.box).join(', ');
 }
 
+// 评委身份开关（与初评结果页共享同一 localStorage 键）
+const votersKey = 'tr-show-voters';
+const showVoters = () => localStorage.getItem(votersKey) === '1';
+const votersOf = (row, box) => (row?.voteDetails || []).filter(v => !v.skip && v.grid === box).map(v => String(v.evaluator || '').trim()).filter(Boolean);
+const votersChipsHtml = (row, box) => {
+  const names = votersOf(row, box);
+  return showVoters() && names.length ? '<div class="stage-box-voters" title="' + esc(names.join('、')) + '">' + names.map(name => '<span class="voter-chip">' + esc(name) + '</span>').join('') + '</div>' : '';
+};
+function wireVoterToggle(){
+  const btn = $('#toggleVoters');
+  if (!btn) return;
+  const sync = () => { btn.classList.toggle('active', showVoters()); btn.textContent = showVoters() ? uiText('隐藏评委','Hide Evaluators') : uiText('显示评委','Show Evaluators') };
+  btn.onclick = () => { localStorage.setItem(votersKey, showVoters() ? '0' : '1'); sync(); renderCurrentViews(); };
+  sync();
+}
+
 function employeeBand(row){
   const fields = row?.fields || {};
   const key = Object.keys(fields).find(name => String(name).toLowerCase().replace(/[^a-z0-9一-龥]+/g, '') === 'band');
@@ -346,6 +363,7 @@ function renderCurrentViews(){
       '<div class="stage-box-count">' + count + '</div>' +
       '<div class="stage-box-bar"><i style="width:' + (count ? Math.max(8, count / max * 100) : 0) + '%"></i></div>' +
       plMarker +
+      votersChipsHtml(row, box) +
       '<div class="cell-note">' + (isDecision ? uiText('讨论结果','Discussion Result') : (isRecommend ? uiText('系统建议','System Suggestion') : '&nbsp;')) + '</div>' +
     '</div>';
   }).join('');
@@ -562,6 +580,7 @@ async function loadQr(custom = ''){
 
 $('#refreshQr').onclick = () => loadQr($('#qrAddress').value.trim());
 loadQr();
+wireVoterToggle();
 loadState();
 loadResults();
 
