@@ -311,17 +311,18 @@ function render(){
   const pending = list.filter(row => row.decision?.type === 'pending');
   const open = list.filter(row => !row.decision);
   const box123 = direct.filter(row => [1,2,3].includes(Number(row.decision?.grid))).length;
+  const box789 = direct.filter(row => [7,8,9].includes(Number(row.decision?.grid))).length;
   const boxLabel = [...activeBoxes].map(value => value === 'pending' ? '\u5f85\u5b9a' : value === 'open' ? '\u5c1a\u672a\u8ba8\u8bba' : 'Box ' + value).join(', ');
   $('#boxFilterSummary').textContent = activeBoxes.size ? (activeBoxes.size === 1 ? boxLabel : '\u5df2\u9009 ' + activeBoxes.size + ' \u9879') : '\u5168\u90e8 Box';
   $('#filterHint').textContent = (activeLevel ? 'Band: ' + activeLevel : '\u5168\u90e8\u5458\u5de5') + (boxLabel ? ' \u00b7 ' + boxLabel : '') + (searchQuery ? ' \u00b7 \u641c\u7d22: ' + searchQuery : '');
   const stats = [
     ['盘点员工', list.length, '人'],
     ['已参与评估', reviewed.length, '人'],
-    ['累计评估票', list.reduce((sum,row) => sum + row.count, 0), '票'],
     ['直接落位', direct.length, '人'],
     ['待定', pending.length, '人'],
     ['尚未讨论', open.length, '人'],
-    ['Box 1/2/3 整体比例', pct(box123, list.length), box123 + '/' + list.length + ' 人']
+    ['Box 1/2/3 整体比例', pct(box123, list.length), box123 + '/' + list.length + ' 人'],
+    ['Box 7/8/9 整体比例', pct(box789, list.length), box789 + '/' + list.length + ' 人']
   ];
   $('#kpis').innerHTML = stats.map(([label,value,unit]) => '<div class="card kpi"><span>' + label + '</span><b>' + value + '</b><small>' + unit + '</small></div>').join('');
   updateFinalAxisBands('.ninebox', direct, list);

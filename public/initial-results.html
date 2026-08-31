@@ -531,6 +531,7 @@ function renderGroup(){
   const adjusted = list.filter(row => row.decision?.type === 'direct');
   const pending = list.filter(row => row.decision?.type === 'pending' || (row.decision?.type !== 'direct' && !row.recommendedGrid));
   const box123 = list.filter(row => row.decision?.type !== 'pending' && [1,2,3].includes(Number(placementGrid(row)))).length;
+  const box789 = list.filter(row => row.decision?.type !== 'pending' && [7,8,9].includes(Number(placementGrid(row)))).length;
   const boxLabel = [...activeBoxes].map(value => value === 'pending' ? '\u5f85\u5b9a' : 'Box ' + value).join(', ');
   $('#boxFilterSummary').textContent = activeBoxes.size ? (activeBoxes.size === 1 ? boxLabel : '\u5df2\u9009 ' + activeBoxes.size + ' \u9879') : '\u5168\u90e8 Box';
   $('#filterHint').textContent = (activeLevel ? 'Band: ' + activeLevel : '\u5168\u90e8\u5458\u5de5') + (boxLabel ? ' \u00b7 ' + boxLabel : '');
@@ -538,11 +539,11 @@ function renderGroup(){
   const stats = [
     ['筛选员工', list.length, '人'],
     ['已初评', reviewed.length, '人'],
-    ['累计投票', list.reduce((sum,row) => sum + row.count, 0), '票'],
     ['有系统推荐', recommended.length, '人'],
     ['已手动调整', adjusted.length, '人'],
     ['待定', pending.length, '人'],
-    ['Box 1/2/3 整体比例', pct(box123, list.length), box123 + '/' + list.length + ' 人']
+    ['Box 1/2/3 整体比例', pct(box123, list.length), box123 + '/' + list.length + ' 人'],
+    ['Box 7/8/9 整体比例', pct(box789, list.length), box789 + '/' + list.length + ' 人']
   ];
   $('#kpis').innerHTML = stats.map(([label,value,unit]) => '<div class="card kpi"><span>' + label + '</span><b>' + value + '</b><small>' + unit + '</small></div>').join('');
   updatePlacementAxisBands('.initial-ninebox', list);
