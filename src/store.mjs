@@ -189,6 +189,10 @@ export class TalentStore {
         return withRoom(base.toString());
       } catch { }
     }
+    // 无 PUBLIC_URL 时：有 override（如 /pre.html）必须尊重，否则二维码会错误指向 /index.html
+    if (override) {
+      try { return withRoom(new URL(override, url.origin).toString()) } catch { }
+    }
     return withRoom(new URL('/index.html', url.origin).toString());
   }
 

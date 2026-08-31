@@ -4,6 +4,10 @@
   "main": "src/worker.mjs",
   "compatibility_date": "2025-03-01",
   "compatibility_flags": ["nodejs_compat"],
+  // 线上环境变量（.env 只对本地 wrangler dev 生效，部署必须写在这里）
+  "vars": {
+    "PUBLIC_URL": "https://anlysis2.19891103.xyz"
+  },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
