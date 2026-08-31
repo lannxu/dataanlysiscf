@@ -399,7 +399,9 @@ export class TalentStore {
     // ---- 二维码 ----
     if (p === '/qr' && request.method === 'GET') {
       const target = this.mobileUrl(url, String(url.searchParams.get('url') || ''));
-      return json({ url: target, svgUrl: '/api/qr.svg?url=' + encodeURIComponent(target) });
+      // svgUrl 由 <img> 直接加载，不走前端的 room 包装器，必须显式带上 room，
+      // 否则 /qr.svg 端 mobileUrl 读不到房间，二维码会退回 default 讨论区
+      return json({ url: target, svgUrl: '/api/qr.svg?room=' + encodeURIComponent(roomId) + '&url=' + encodeURIComponent(target) });
     }
     if (p === '/qr.svg' && request.method === 'GET') {
       const target = this.mobileUrl(url, String(url.searchParams.get('url') || ''));
