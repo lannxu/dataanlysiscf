@@ -88,15 +88,12 @@ function choiceRow(prefix, total, current, attr){
     '<button type="button" class="choice' + (current === i ? ' active' : '') + '" data-' + attr + '="' + i + '">' + prefix + i + '</button>').join('') + '</div>';
 }
 function editFormHtml(item){
-  const draft = editing || {}, c = item.commentDetail || {};
+  const draft = editing || {};
   const box = boxFromLevels(draft.pl, draft.pot);
   return '<div class="my-vote-edit" data-edit-form="' + esc(item.employeeId) + '">' +
     '<div class="dimension"><h2>绩效等级（PL）</h2>' + choiceRow('PL', 5, draft.pl, 'pl') + '</div>' +
     '<div class="dimension"><h2>潜力等级（POT）</h2>' + choiceRow('POT', 3, draft.pot, 'pot') + '</div>' +
     '<div class="pre-box-preview' + (box ? ' active' : '') + '">' + (box ? '当前选择：PL' + draft.pl + ' / POT' + draft.pot + ' → Box ' + box : '选择 PL 和 POT 后显示 Box') + '</div>' +
-    '<label class="my-edit-comment"><span>Strength</span><textarea class="comment-box" data-comment="strength">' + esc(c.strength || '') + '</textarea></label>' +
-    '<label class="my-edit-comment"><span>Improvement Area</span><textarea class="comment-box" data-comment="improvementArea">' + esc(c.improvementArea || '') + '</textarea></label>' +
-    '<label class="my-edit-comment"><span>Others</span><textarea class="comment-box" data-comment="others">' + esc(c.others || '') + '</textarea></label>' +
     '<div class="pre-submit-row">' +
       '<button type="button" class="submit" data-submit-edit>提交修改</button>' +
       '<button type="button" class="secondary" data-skip-edit>Skip</button>' +
@@ -106,7 +103,7 @@ function editFormHtml(item){
   '</div>';
 }
 function editButtonHtml(item){
-  return item ? '<button type="button" class="secondary my-edit-btn" data-edit-btn="' + esc(item.employeeId) + '">修改</button>' : '';
+  return item ? '<button type="button" class="secondary my-edit-btn" data-edit-btn="' + esc(item.employeeId) + '">修改 Revise</button>' : '';
 }
 function syncChoices(form){
   if (!form || !editing) return;
@@ -123,12 +120,13 @@ async function submitEdit(skip){
   if (!editing) return;
   const form = document.querySelector('[data-edit-form="' + CSS.escape(editing.employeeId) + '"]');
   const toast = form?.querySelector('[data-edit-toast]');
-  const comment = {strength: '', improvementArea: '', others: ''};
-  form?.querySelectorAll('[data-comment]').forEach(box => comment[box.dataset.comment] = box.value.trim());
+  // 表单不再编辑备注，提交时沿用原备注
+  const original = myItems.find(x => x.employeeId === editing.employeeId);
+  const comment = original?.commentDetail || {strength: '', improvementArea: '', others: ''};
   if (!skip && !(editing.pl && editing.pot)) { if (toast) toast.textContent = '请选择 PL 和 POT，或改用 Skip'; return; }
   const response = await fetch('/api/vote', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type':'application/json'},
     body: JSON.stringify({evaluatorId: editing.key, evaluatorName: editing.evaluator, employeeId: editing.employeeId, pl: editing.pl, pot: editing.pot, skip, comment})
   });
   const data = await response.json().catch(() => ({}));
@@ -157,8 +155,6 @@ document.addEventListener('click', async event => {
 });
 
 function renderCurrent(){
-  // 正在编辑备注时跳过重渲染，避免表单被重建丢失输入；数据下次触发时补刷
-  if (document.activeElement?.matches?.('[data-comment]')) return;
   const box = $('#currentVoteView');
   if (!currentEmployee) { box.innerHTML = '<div class="empty">等待主持人选择员工</div>'; return; }
   const item = myItems.find(x => x.employeeId === currentEmployee.id);
@@ -172,15 +168,12 @@ function renderCurrent(){
 }
 function render(items){
   myItems = items || [];
-  // 正在编辑备注时跳过重渲染，避免表单被重建丢失输入；数据下次触发时补刷
-  if (document.activeElement?.matches?.('[data-comment]')) return;
   $('#voteCount').textContent = myItems.length + ' 条';
   $('#myVotesList').innerHTML = myItems.length ? myItems.map(item =>
     '<div class="my-vote-item">' +
       '<div><b>' + esc(item.name) + '</b><span>' + esc(personLine(item)) + '</span></div>' +
-      '<div>' + voteText(item) + editButtonHtml(item) + '</div>' +
+      '<div>' + voteText(item) + '</div>' +
       '<p>' + commentText(item) + '</p>' +
-      (editing?.employeeId === item.employeeId ? editFormHtml(item) : '') +
     '</div>'
   ).join('') : '<div class="empty">没有查到记录，请确认评估人姓名/编号是否和提交或导入时一致。</div>';
   renderCurrent();

@@ -420,7 +420,6 @@
 /* my-votes: edit own initial vote */
 .my-vote-edit{grid-column:1/-1;margin-top:10px;padding-top:12px;border-top:1px dashed #dfe5ef;display:grid;gap:8px}
 .my-edit-btn{padding:6px 12px;font-size:12px;margin-left:8px;white-space:nowrap}
-.my-edit-comment{display:grid;gap:4px;font-size:12px;color:#778197}
 .my-vote-edit .pre-submit-row{grid-template-columns:1fr auto auto}
 .my-vote-edit .submit{margin-top:2px}
 
