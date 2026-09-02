@@ -464,7 +464,7 @@ export class TalentStore {
           matchedEntry = matchedKey ? [matchedKey, voteMap[matchedKey]] : entries.find(([_id, v]) => name && String(v.evaluatorName || '').trim().toLowerCase() === name.toLowerCase());
         if (!matchedEntry) continue;
         const [matched, v] = matchedEntry;
-        items.push({ employeeId: e.id, employeeNo: e.employeeNo || e.id, name: e.name, department: e.department, role: e.role, fields: e.fields || {}, evaluator: String(v.evaluatorName || matched || '').replace(/^name:/, ''), pl: v.pl || null, pot: v.pot || null, grid: v.skip ? null : gridBox(v.pl, v.pot), skip: !!v.skip, comment: voteCommentText(v.comment), commentDetail: cleanVoteComment(v.comment), updatedAt: v.updatedAt || '', source: v.source || 'online' });
+        items.push({ employeeId: e.id, employeeNo: e.employeeNo || e.id, name: e.name, department: e.department, role: e.role, fields: e.fields || {}, evaluator: String(v.evaluatorName || matched || '').replace(/^name:/, ''), evaluatorKey: matched, pl: v.pl || null, pot: v.pot || null, grid: v.skip ? null : gridBox(v.pl, v.pot), skip: !!v.skip, comment: voteCommentText(v.comment), commentDetail: cleanVoteComment(v.comment), updatedAt: v.updatedAt || '', source: v.source || 'online' });
       }
       return json({ ok: true, evaluator: raw || name, total: items.length, items });
     }

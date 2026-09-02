@@ -75,25 +75,112 @@ function commentText(item){
   if (!item) return '<em>如果你已做过初评，请确认上方输入的评估人名称和导入/提交时一致。</em>';
   return item.comment ? esc(item.comment) : '<em>暂无 Comments</em>';
 }
+
+// ---- 修改自己的初评 ----
+let editing = null; // {employeeId, key, evaluator, pl, pot}
+const boxFromLevels = (plValue, potValue) => {
+  if (!plValue || !potValue) return null;
+  const group = plValue >= 4 ? 'H' : plValue === 3 ? 'M' : 'L';
+  return ({'H,3':1,'H,2':2,'H,1':4,'M,3':3,'M,2':5,'M,1':7,'L,3':6,'L,2':8,'L,1':9})[group + ',' + potValue] || null;
+};
+function choiceRow(prefix, total, current, attr){
+  return '<div class="options' + (prefix === 'POT' ? ' pot' : '') + '">' + Array.from({length: total}, (_, i) => i + 1).map(i =>
+    '<button type="button" class="choice' + (current === i ? ' active' : '') + '" data-' + attr + '="' + i + '">' + prefix + i + '</button>').join('') + '</div>';
+}
+function editFormHtml(item){
+  const draft = editing || {}, c = item.commentDetail || {};
+  const box = boxFromLevels(draft.pl, draft.pot);
+  return '<div class="my-vote-edit" data-edit-form="' + esc(item.employeeId) + '">' +
+    '<div class="dimension"><h2>绩效等级（PL）</h2>' + choiceRow('PL', 5, draft.pl, 'pl') + '</div>' +
+    '<div class="dimension"><h2>潜力等级（POT）</h2>' + choiceRow('POT', 3, draft.pot, 'pot') + '</div>' +
+    '<div class="pre-box-preview' + (box ? ' active' : '') + '">' + (box ? '当前选择：PL' + draft.pl + ' / POT' + draft.pot + ' → Box ' + box : '选择 PL 和 POT 后显示 Box') + '</div>' +
+    '<label class="my-edit-comment"><span>Strength</span><textarea class="comment-box" data-comment="strength">' + esc(c.strength || '') + '</textarea></label>' +
+    '<label class="my-edit-comment"><span>Improvement Area</span><textarea class="comment-box" data-comment="improvementArea">' + esc(c.improvementArea || '') + '</textarea></label>' +
+    '<label class="my-edit-comment"><span>Others</span><textarea class="comment-box" data-comment="others">' + esc(c.others || '') + '</textarea></label>' +
+    '<div class="pre-submit-row">' +
+      '<button type="button" class="submit" data-submit-edit>提交修改</button>' +
+      '<button type="button" class="secondary" data-skip-edit>Skip</button>' +
+      '<button type="button" class="secondary" data-cancel-edit>取消</button>' +
+    '</div>' +
+    '<div class="toast" data-edit-toast></div>' +
+  '</div>';
+}
+function editButtonHtml(item){
+  return item ? '<button type="button" class="secondary my-edit-btn" data-edit-btn="' + esc(item.employeeId) + '">修改</button>' : '';
+}
+function syncChoices(form){
+  if (!form || !editing) return;
+  form.querySelectorAll('[data-pl]').forEach((btn, i) => btn.classList.toggle('active', i + 1 === editing.pl));
+  form.querySelectorAll('[data-pot]').forEach((btn, i) => btn.classList.toggle('active', i + 1 === editing.pot));
+  const preview = form.querySelector('.pre-box-preview');
+  const box = boxFromLevels(editing.pl, editing.pot);
+  if (preview) {
+    preview.classList.toggle('active', !!box);
+    preview.textContent = box ? '当前选择：PL' + editing.pl + ' / POT' + editing.pot + ' → Box ' + box : '选择 PL 和 POT 后显示 Box';
+  }
+}
+async function submitEdit(skip){
+  if (!editing) return;
+  const form = document.querySelector('[data-edit-form="' + CSS.escape(editing.employeeId) + '"]');
+  const toast = form?.querySelector('[data-edit-toast]');
+  const comment = {strength: '', improvementArea: '', others: ''};
+  form?.querySelectorAll('[data-comment]').forEach(box => comment[box.dataset.comment] = box.value.trim());
+  if (!skip && !(editing.pl && editing.pot)) { if (toast) toast.textContent = '请选择 PL 和 POT，或改用 Skip'; return; }
+  const response = await fetch('/api/vote', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({evaluatorId: editing.key, evaluatorName: editing.evaluator, employeeId: editing.employeeId, pl: editing.pl, pot: editing.pot, skip, comment})
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { if (toast) toast.textContent = data.error || '提交失败'; return; }
+  const editedId = editing.employeeId;
+  editing = null;
+  $('#status').textContent = '已更新对 ' + (myItems.find(x => x.employeeId === editedId)?.name || '该员工') + ' 的初评';
+  await loadVotes();
+}
+document.addEventListener('click', async event => {
+  const editBtn = event.target.closest('[data-edit-btn]');
+  if (editBtn) {
+    const item = myItems.find(x => x.employeeId === editBtn.dataset.editBtn);
+    if (!item) return;
+    editing = {employeeId: item.employeeId, key: item.evaluatorKey || deviceEvaluatorId(), evaluator: item.evaluator || $('#evaluatorName').value.trim(), pl: item.skip ? 0 : (item.pl || 0), pot: item.skip ? 0 : (item.pot || 0)};
+    render(myItems);
+    return;
+  }
+  const plBtn = event.target.closest('[data-pl]');
+  if (plBtn) { if (editing) { editing.pl = Number(plBtn.dataset.pl); syncChoices(plBtn.closest('[data-edit-form]')); } return; }
+  const potBtn = event.target.closest('[data-pot]');
+  if (potBtn) { if (editing) { editing.pot = Number(potBtn.dataset.pot); syncChoices(potBtn.closest('[data-edit-form]')); } return; }
+  if (event.target.closest('[data-cancel-edit]')) { editing = null; render(myItems); return; }
+  if (event.target.closest('[data-submit-edit]')) { await submitEdit(false); return; }
+  if (event.target.closest('[data-skip-edit]')) { await submitEdit(true); return; }
+});
+
 function renderCurrent(){
+  // 正在编辑备注时跳过重渲染，避免表单被重建丢失输入；数据下次触发时补刷
+  if (document.activeElement?.matches?.('[data-comment]')) return;
   const box = $('#currentVoteView');
   if (!currentEmployee) { box.innerHTML = '<div class="empty">等待主持人选择员工</div>'; return; }
   const item = myItems.find(x => x.employeeId === currentEmployee.id);
   box.innerHTML = '<div class="my-current-person">' +
     '<div><b>' + esc(currentEmployee.name) + '</b><span>' + esc([currentEmployee.department, currentEmployee.role].filter(Boolean).join(' · ')) + '</span></div>' +
-    '<div>' + voteText(item) + '</div>' +
+    '<div>' + voteText(item) + editButtonHtml(item) + '</div>' +
     '<p>' + commentText(item) + '</p>' +
+    (item && editing?.employeeId === item.employeeId ? editFormHtml(item) : '') +
   '</div>';
   $('#currentStatus').textContent = item ? '已显示你对当前员工的初评' : '当前员工暂未匹配到你的初评';
 }
 function render(items){
   myItems = items || [];
+  // 正在编辑备注时跳过重渲染，避免表单被重建丢失输入；数据下次触发时补刷
+  if (document.activeElement?.matches?.('[data-comment]')) return;
   $('#voteCount').textContent = myItems.length + ' 条';
   $('#myVotesList').innerHTML = myItems.length ? myItems.map(item =>
     '<div class="my-vote-item">' +
       '<div><b>' + esc(item.name) + '</b><span>' + esc(personLine(item)) + '</span></div>' +
-      '<div>' + voteText(item) + '</div>' +
+      '<div>' + voteText(item) + editButtonHtml(item) + '</div>' +
       '<p>' + commentText(item) + '</p>' +
+      (editing?.employeeId === item.employeeId ? editFormHtml(item) : '') +
     '</div>'
   ).join('') : '<div class="empty">没有查到记录，请确认评估人姓名/编号是否和提交或导入时一致。</div>';
   renderCurrent();

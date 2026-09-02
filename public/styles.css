@@ -417,6 +417,13 @@
 /* Hide PL marker in host single-person grid. */
 .stage-nine-card .single-pl-marker{display:none}
 
+/* my-votes: edit own initial vote */
+.my-vote-edit{grid-column:1/-1;margin-top:10px;padding-top:12px;border-top:1px dashed #dfe5ef;display:grid;gap:8px}
+.my-edit-btn{padding:6px 12px;font-size:12px;margin-left:8px;white-space:nowrap}
+.my-edit-comment{display:grid;gap:4px;font-size:12px;color:#778197}
+.my-vote-edit .pre-submit-row{grid-template-columns:1fr auto auto}
+.my-vote-edit .submit{margin-top:2px}
+
 .box-multi-filter{position:relative;min-width:132px}.box-multi-filter summary{list-style:none;cursor:pointer;border:1px solid #dfe5ef;border-radius:12px;background:#fff;padding:10px 34px 10px 12px;font-weight:700;color:#172034;white-space:nowrap}.box-multi-filter summary::-webkit-details-marker{display:none}.box-multi-filter summary:after{content:'\25BE';position:absolute;right:12px;color:#778197}.box-multi-menu{position:absolute;z-index:30;right:0;top:calc(100% + 6px);display:grid;grid-template-columns:repeat(2,minmax(86px,1fr));gap:4px;width:210px;padding:8px;background:#fff;border:1px solid #dfe5ef;border-radius:8px;box-shadow:0 12px 28px rgba(23,32,52,.16)}.box-multi-menu label{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer}.box-multi-menu label:hover{background:#f2f5fb}.box-multi-menu input{width:16px;height:16px;margin:0;accent-color:#2457e6}@media(max-width:720px){.box-multi-filter{width:100%}.box-multi-menu{left:0;right:auto;width:min(250px,calc(100vw - 48px))}}
 
 .vote-positive{color:#d97706!important;font-weight:900}.vote-zero{color:#9aa3b5!important}
