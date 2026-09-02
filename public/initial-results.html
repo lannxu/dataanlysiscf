@@ -594,6 +594,8 @@ function wireVoterToggle(){
 }
 
 function renderPerson(){
+  // 正在输入讨论备注时跳过重渲染，避免输入框被重建导致焦点丢失/输入被打断；失焦后自动补刷
+  if (document.activeElement?.dataset?.personNoteKey) return;
   renderPersonPicker();
   const row = currentPerson();
   if (!row) {
@@ -679,6 +681,8 @@ function wirePersonDiscussionNote(row){
     clearTimeout(timer);
     timer = setTimeout(saveNote, 650);
   }));
+  // 失焦后补刷一次被跳过的渲染（同步最新投票等数据）
+  inputs.forEach(input => input.addEventListener('blur', () => setTimeout(renderPerson, 0)));
 }
 
 function render(){

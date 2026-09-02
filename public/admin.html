@@ -131,6 +131,7 @@ let uploadedPhotos = {};
 let uploadedFields = {};
 const employeeAssetKey = employee => String(employee?.employeeNo || employee?.id || '') + '\u0000' + String(employee?.name || '');
 let noteSaveTimer = null;
+let wsRenderDefer = null;
 let noteSavingFor = null;
 const discussionNoteFields = [
   ['strength','Strength'],
@@ -317,6 +318,8 @@ function renderReviewProgress(){
 }
 
 function renderCurrentViews(){
+  // 正在输入讨论备注时跳过重渲染，避免输入框被重建导致焦点丢失/输入被打断；失焦后自动补刷
+  if (document.activeElement?.dataset?.noteKey) return;
   const row = currentResult() || (state?.employee ? {...state.employee, count:0, gridCounts:Array(9).fill(0), plCounts:Array(5).fill(0), potCounts:Array(3).fill(0), decision:null, discussionNote:{}} : null);
   const e = row || state?.employee;
   if (!e) {
@@ -392,6 +395,8 @@ function wireDiscussionNote(){
       const employeeId = row.id;
       noteSaveTimer = setTimeout(() => saveDiscussionNote(employeeId, collect()), 700);
     };
+    // 失焦后补刷一次被跳过的渲染（同步最新投票等数据）
+    input.onblur = () => setTimeout(renderCurrentViews, 0);
   });
 }
 
@@ -588,8 +593,19 @@ function connect(){
   const ws = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + wsRoomPath);
   ws.onmessage = event => {
     const message = JSON.parse(event.data);
-    if (['state','current','employees'].includes(message.type)) loadState();
-    if (['results','employees'].includes(message.type)) loadResults();
+    // 正在输入备注时不重渲染（避免输入框被重建打断输入），停顿后再刷新
+    const active = document.activeElement;
+    const typing = active && (active.tagName === 'TEXTAREA' || (active.tagName === 'INPUT' && !['radio','checkbox','button'].includes(active.type)));
+    const apply = () => {
+      if (['state','current','employees'].includes(message.type)) loadState();
+      if (['results','employees'].includes(message.type)) loadResults();
+    };
+    if (typing) {
+      clearTimeout(wsRenderDefer);
+      wsRenderDefer = setTimeout(apply, 800);
+    } else {
+      apply();
+    }
   };
   ws.onclose = () => setTimeout(connect, 1200);
 }
